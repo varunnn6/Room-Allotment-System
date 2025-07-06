@@ -1,0 +1,235 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+using namespace std;
+
+class Guest {
+public:
+    string name;
+    string phone;
+    int roomNumber;
+    string checkInDate; // Format: YYYY-MM-DD
+    int stayDuration;
+
+    Guest(string n, string p, int r, string date, int dur) {
+        name = n;
+        phone = p;
+        roomNumber = r;
+        checkInDate = date;
+        stayDuration = dur;
+    }
+
+    void display() {
+        cout << "Name: " << name << ", Phone: " << phone
+             << ", Room: " << roomNumber << ", Check-in: " << checkInDate
+             << ", Stay: " << stayDuration << " days" << endl;
+    }
+
+    string toString() {
+        return name + "," + phone + "," + to_string(roomNumber) + "," + checkInDate + "," + to_string(stayDuration);
+    }
+};
+
+class HotelSystem {
+private:
+    vector<Guest> guests;
+    int totalRooms;
+    string filename = "bookings.txt";
+
+public:
+    HotelSystem(int rooms) {
+        totalRooms = rooms;
+        loadFromFile();
+    }
+
+    bool isRoomAvailable(int roomNo) {
+        for (auto& guest : guests) {
+            if (guest.roomNumber == roomNo) return false;
+        }
+        return roomNo >= 1 && roomNo <= totalRooms;
+    }
+
+    void allotRoom() {
+        string name, phone, date;
+        int room, duration;
+
+        cin.ignore();
+        cout << "Enter guest name: ";
+        getline(cin, name);
+        cout << "Enter phone number: ";
+        getline(cin, phone);
+        cout << "Enter room number (1 to " << totalRooms << "): ";
+        cin >> room;
+
+        if (!isRoomAvailable(room)) {
+            cout << "Room not available.\n";
+            return;
+        }
+
+        cin.ignore();
+        cout << "Enter check-in date (YYYY-MM-DD): ";
+        getline(cin, date);
+        cout << "Enter stay duration (in days): ";
+        cin >> duration;
+
+        Guest g(name, phone, room, date, duration);
+        guests.push_back(g);
+        saveToFile();
+        cout << "Room " << room << " allotted to " << name << ".\n";
+    }
+
+    void cancelBooking() {
+        int room;
+        cout << "Enter room number to cancel booking: ";
+        cin >> room;
+
+        bool found = false;
+        for (auto it = guests.begin(); it != guests.end(); ++it) {
+            if (it->roomNumber == room) {
+                guests.erase(it);
+                saveToFile();
+                cout << "Booking for room " << room << " cancelled.\n";
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+            cout << "No booking found for room " << room << ".\n";
+    }
+
+    void displayBookings() {
+        if (guests.empty()) {
+            cout << "No bookings found.\n";
+            return;
+        }
+
+        cout << "\n--- Current Bookings ---\n";
+        for (auto& g : guests)
+            g.display();
+    }
+
+    void searchByRoom() {
+        int room;
+        cout << "Enter room number to search: ";
+        cin >> room;
+
+        bool found = false;
+        for (auto& g : guests) {
+            if (g.roomNumber == room) {
+                cout << "Guest in room " << room << ":\n";
+                g.display();
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+            cout << "No guest found in room " << room << ".\n";
+    }
+
+    void searchByName() {
+        cin.ignore();
+        string searchName;
+        cout << "Enter guest name to search: ";
+        getline(cin, searchName);
+
+        bool found = false;
+        for (auto& g : guests) {
+            if (g.name == searchName) {
+                g.display();
+                found = true;
+            }
+        }
+
+        if (!found)
+            cout << "No guest found with name \"" << searchName << "\".\n";
+    }
+
+    void searchByPhone() {
+        cin.ignore();
+        string phone;
+        cout << "Enter phone number to search: ";
+        getline(cin, phone);
+
+        bool found = false;
+        for (auto& g : guests) {
+            if (g.phone == phone) {
+                g.display();
+                found = true;
+            }
+        }
+
+        if (!found)
+            cout << "No guest found with phone number \"" << phone << "\".\n";
+    }
+
+    void saveToFile() {
+        ofstream outFile(filename);
+        for (auto& g : guests) {
+            outFile << g.toString() << endl;
+        }
+        outFile.close();
+    }
+
+    void loadFromFile() {
+        guests.clear();
+        ifstream inFile(filename);
+        string line;
+        while (getline(inFile, line)) {
+            stringstream ss(line);
+            string name, phone, roomStr, date, durStr;
+            getline(ss, name, ',');
+            getline(ss, phone, ',');
+            getline(ss, roomStr, ',');
+            getline(ss, date, ',');
+            getline(ss, durStr, ',');
+
+            int room = stoi(roomStr);
+            int dur = stoi(durStr);
+            guests.push_back(Guest(name, phone, room, date, dur));
+        }
+        inFile.close();
+    }
+
+    void showMenu() {
+        int choice;
+        do {
+            cout << "\n--- Hotel Room Allotment Menu ---\n";
+            cout << "1. Allot Room\n";
+            cout << "2. Cancel Booking\n";
+            cout << "3. View All Bookings\n";
+            cout << "4. Search by Room Number\n";
+            cout << "5. Search by Guest Name\n";
+            cout << "6. Search by Phone Number\n";
+            cout << "7. Exit\n";
+            cout << "Enter choice: ";
+            cin >> choice;
+
+            switch (choice) {
+                case 1: allotRoom(); break;
+                case 2: cancelBooking(); break;
+                case 3: displayBookings(); break;
+                case 4: searchByRoom(); break;
+                case 5: searchByName(); break;
+                case 6: searchByPhone(); break;
+                case 7: cout << "Exiting...\n"; break;
+                default: cout << "Invalid choice.\n";
+            }
+        } while (choice != 7);
+    }
+};
+
+int main() {
+    int totalRooms;
+    cout << "Enter total number of rooms in the hotel: ";
+    cin >> totalRooms;
+
+    HotelSystem hotel(totalRooms);
+    hotel.showMenu();
+
+    return 0;
+}
